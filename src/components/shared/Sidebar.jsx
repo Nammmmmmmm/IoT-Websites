@@ -1,6 +1,6 @@
 import React from 'react'
 import { FcElectronics } from "react-icons/fc";
-import { DASHBOARD_SIDEBAR_BOTTOM_LINKS, DASHBOARD_SIDEBAR_LINKS } from '../../lib/consts/navigation';
+import {  DASHBOARD_SIDEBAR_LINKS } from '../../lib/consts/navigation';
 import { Link, useLocation } from 'react-router-dom';
 import classNames from 'classnames'
 
@@ -19,11 +19,11 @@ export default function Sidebar() {
                 <SidebarLink key={item.key} item={item} />
             ))}
         </div>
-        <div className='flex py-8 flex flex-col gap-0.5 pt-2 border-t border-neutral-700'> 
+        {/* <div className='flex py-8 flex flex-col gap-0.5 pt-2 border-t border-neutral-700'> 
             {DASHBOARD_SIDEBAR_BOTTOM_LINKS.map((item) => (
                 <SidebarLink key={item.key} item={item} />
             ))}
-        </div>
+        </div> */}
     </div>
 
   )

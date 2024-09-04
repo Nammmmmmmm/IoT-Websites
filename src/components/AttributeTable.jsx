@@ -6,23 +6,40 @@ const sampleData = Array.from({ length: 100 }, (_, index) => ({
   temperature: (Math.random() * 30).toFixed(2),
   humidity: (Math.random() * 100).toFixed(2),
   light: (Math.random() * 1000).toFixed(2),
-  startTime: new Date().toLocaleString(),
-  endTime: new Date().toLocaleString(),
+  measurementTime: new Date().toLocaleString(),
 }));
 
 export default function AttributeTable() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("");
+  const [filterValue] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   const itemsPerPage = 10;
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
 
+  const handleFilterSearch = () => {
+    // Code to handle filter search can be added here if necessary
+  };
+
+  const filteredData = sampleData.filter((item) => {
+    return (
+      (selectedFilter === "" || item[selectedFilter].includes(filterValue)) &&
+      (item.temperature.includes(searchTerm) ||
+        item.humidity.includes(searchTerm) ||
+        item.light.includes(searchTerm))
+    );
+  });
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = sampleData.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
 
-  const totalPages = Math.ceil(sampleData.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const renderPageNumbers = () => {
     const pageNumbers = [];
@@ -61,7 +78,7 @@ export default function AttributeTable() {
 
   return (
     <div>
-      <div>
+      <div className="flex space-x-4">
         <div className="relative">
           <HiOutlineSearch
             fontSize={20}
@@ -70,9 +87,69 @@ export default function AttributeTable() {
           <input
             type="text"
             placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="text-sm focus:outline-none active:outline-none border border-gray-300 w-[24rem] h-10 pl-11 pr-4 rounded-lg"
           />
         </div>
+        <div className="relative">
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="text-sm focus:outline-none active:outline-none border border-gray-300 w-[10rem] h-10 pl-4 pr-4 rounded-lg flex justify-between items-center"
+          >
+            {selectedFilter === ""
+              ? "Select Attribute"
+              : selectedFilter.charAt(0).toUpperCase() +
+                selectedFilter.slice(1)}
+            <span className="ml-2">{isDropdownOpen ? "▲" : "▼"}</span>
+          </button>
+          {isDropdownOpen && (
+            <div className="absolute left-0 mt-2 w-[10rem] bg-white shadow-lg rounded-lg overflow-hidden z-10">
+              <button
+                onClick={() => {
+                  setSelectedFilter("");
+                  setIsDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-200"
+              >
+                Select Attribute
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedFilter("temperature");
+                  setIsDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-200"
+              >
+                Temperature
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedFilter("humidity");
+                  setIsDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-200"
+              >
+                Humidity
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedFilter("light");
+                  setIsDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-200"
+              >
+                Light
+              </button>
+            </div>
+          )}
+        </div>
+        <button
+          onClick={handleFilterSearch}
+          className="text-sm focus:outline-none active:outline-none border border-gray-300 w-[8rem] h-10 pl-4 pr-4 rounded-lg bg-blue-500 text-white"
+        >
+          Search
+        </button>
       </div>
       <div className="overflow-y-auto max-h-[500px] mt-4">
         <table className="min-w-full divide-y divide-gray-200">
@@ -82,8 +159,7 @@ export default function AttributeTable() {
               <th>Nhiệt độ</th>
               <th>Độ ẩm</th>
               <th>Ánh sáng</th>
-              <th>Thời gian bắt đầu</th>
-              <th>Thời gian kết thúc</th>
+              <th>Thời gian đo</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -93,8 +169,7 @@ export default function AttributeTable() {
                 <td>{item.temperature}</td>
                 <td>{item.humidity}</td>
                 <td>{item.light}</td>
-                <td>{item.startTime}</td>
-                <td>{item.endTime}</td>
+                <td>{item.measurementTime}</td>
               </tr>
             ))}
           </tbody>

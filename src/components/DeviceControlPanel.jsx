@@ -42,7 +42,7 @@ function DeviceControlPanel() {
             size="2x"
             style={{ color: lightbulbIsOn ? "yellow" : "gray" }}
           />
-          <span className="ml-3">Đèn</span>
+          <span className="ml-5">Đèn</span>
         </div>
         <div className="p-4 flex items-center ml-auto">
           <span className="p-4 font-black text-lg">OFF</span>
