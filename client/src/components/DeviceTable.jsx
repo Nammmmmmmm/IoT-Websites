@@ -1,22 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { HiOutlineSearch } from "react-icons/hi";
-
-const sampleData = Array.from({ length: 100 }, (_, index) => ({
-  id: index + 1,
-  device: ["Fan", "TV", "Lamp"][Math.floor(Math.random() * 3)],
-  status: Math.random() > 0.5 ? "Active" : "Inactive",
-  measurementTime: new Date().toLocaleString(),
-}));
+import axios from "axios";
 
 export default function AttributeTable() {
+  const [data, setData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [filterTriggered, setFilterTriggered] = useState(false);
+  const [inputPageNumber, setInputPageNumber] = useState("");
+  const [itemsPerPage] = useState(10);
 
-  const itemsPerPage = 10;
+  useEffect(() => {
+    fetchData();
+  }, []);
 
+  const fetchData = async () => {
+    try {
+      const response = await axios.get("http://localhost:7000/data_device");
+      const data = response.data;
+      setData(data);
+    } catch (err) {
+      console.log("Something went wrong", err);
+    }
+  };
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
@@ -25,7 +33,7 @@ export default function AttributeTable() {
     setFilterTriggered(!filterTriggered);
   };
 
-  const filteredData = sampleData.filter((item) => {
+  const filteredData = [...data].filter((item) => {
     return (
       (selectedFilter === "" || item.device.includes(selectedFilter)) &&
       (item.device.includes(searchTerm) ||
@@ -71,8 +79,13 @@ export default function AttributeTable() {
         pageNumbers.push(totalPages);
       }
     }
-
     return pageNumbers;
+  };
+  const handleInputPageChange = () => {
+    const pageNumber = parseInt(inputPageNumber, 10);
+    if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
   };
 
   return (
@@ -153,19 +166,39 @@ export default function AttributeTable() {
           </tbody>
         </table>
       </div>
-      <div className="flex justify-center mt-4">
-        {renderPageNumbers().map((pageNumber, index) => (
+      <div className="flex justify-between items-center mt-4">
+        <div></div>
+        <div className="flex justify-center">
+          {renderPageNumbers().map((pageNumber, index) => (
+            <button
+              key={index}
+              onClick={() => handlePageChange(pageNumber)}
+              className={`px-4 py-2 mx-1 border rounded ${
+                currentPage === pageNumber
+                  ? "bg-blue-500 text-white"
+                  : "bg-white"
+              }`}
+              disabled={pageNumber === "..."}
+            >
+              {pageNumber}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center">
+          <input
+            type="number"
+            value={inputPageNumber}
+            onChange={(e) => setInputPageNumber(e.target.value)}
+            className="border border-gray-300 rounded-lg p-2 w-16"
+            placeholder="Page"
+          />
           <button
-            key={index}
-            onClick={() => handlePageChange(pageNumber)}
-            className={`px-4 py-2 mx-1 border rounded ${
-              currentPage === pageNumber ? "bg-blue-500 text-white" : "bg-white"
-            }`}
-            disabled={pageNumber === "..."}
+            onClick={handleInputPageChange}
+            className="ml-2 px-4 py-2 border rounded bg-blue-500 text-white"
           >
-            {pageNumber}
+            Go
           </button>
-        ))}
+        </div>
       </div>
     </div>
   );

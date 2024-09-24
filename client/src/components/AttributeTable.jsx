@@ -1,37 +1,58 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { HiOutlineSearch } from "react-icons/hi";
-
-const sampleData = Array.from({ length: 100 }, (_, index) => ({
-  id: index + 1,
-  temperature: (Math.random() * 30).toFixed(2),
-  humidity: (Math.random() * 100).toFixed(2),
-  light: (Math.random() * 1000).toFixed(2),
-  measurementTime: new Date().toLocaleString(),
-}));
+import { FaSortUp, FaSortDown } from "react-icons/fa";
+import axios from "axios";
 
 export default function AttributeTable() {
+  const [data, setData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("");
-  const [filterValue] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+  const [itemsPerPage] = useState(10);
+  const [inputPageNumber, setInputPageNumber] = useState("");
 
-  const itemsPerPage = 10;
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await axios.get("http://localhost:7000/data_sensor");
+      setData(response.data); // Lấy dữ liệu từ API và lưu vào state
+    } catch (err) {
+      console.log("Something went wrong", err);
+    }
+  };
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
 
-  const handleFilterSearch = () => {
-    // Code to handle filter search can be added here if necessary
+  const handleSort = (key) => {
+    let direction = "ascending";
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
   };
 
-  const filteredData = sampleData.filter((item) => {
+  const sortedData = [...data].sort((a, b) => {
+    if (a[sortConfig.key] < b[sortConfig.key]) {
+      return sortConfig.direction === "ascending" ? -1 : 1;
+    }
+    if (a[sortConfig.key] > b[sortConfig.key]) {
+      return sortConfig.direction === "ascending" ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const filteredData = sortedData.filter((item) => {
     return (
-      (selectedFilter === "" || item[selectedFilter].includes(filterValue)) &&
-      (item.temperature.includes(searchTerm) ||
-        item.humidity.includes(searchTerm) ||
-        item.light.includes(searchTerm))
+      item.temperature.toString().includes(searchTerm) ||
+      item.humidity.toString().includes(searchTerm) ||
+      item.light.toString().includes(searchTerm)
     );
   });
 
@@ -74,6 +95,17 @@ export default function AttributeTable() {
     }
 
     return pageNumbers;
+  };
+
+  const handleFilterSearch = () => {
+    // Code to handle filter search can be added here if necessary
+  };
+  
+  const handleInputPageChange = () => {
+    const pageNumber = parseInt(inputPageNumber, 10);
+    if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
   };
 
   return (
@@ -155,39 +187,107 @@ export default function AttributeTable() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th>ID</th>
-              <th>Nhiệt độ</th>
-              <th>Độ ẩm</th>
-              <th>Ánh sáng</th>
-              <th>Thời gian đo</th>
+              <th>
+                ID
+                <button onClick={() => handleSort("id")}>
+                  {sortConfig.key === "id" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
+                Nhiệt độ
+                <button onClick={() => handleSort("temperature")}>
+                  {sortConfig.key === "temperature" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
+                Độ ẩm
+                <button onClick={() => handleSort("humidity")}>
+                  {sortConfig.key === "humidity" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
+                Ánh sáng
+                <button onClick={() => handleSort("light")}>
+                  {sortConfig.key === "light" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
+                Thời gian đo
+                <button onClick={() => handleSort("measurementTime")}>
+                  {sortConfig.key === "measurementTime" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {currentItems.map((item) => (
               <tr key={item.id}>
                 <td>{item.id}</td>
-                <td>{item.temperature}</td>
-                <td>{item.humidity}</td>
-                <td>{item.light}</td>
+                <td>{item.temperature} °C</td>
+                <td>{item.humidity} %</td>
+                <td>{item.light} Lux</td>
                 <td>{item.measurementTime}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="flex justify-center mt-4">
-        {renderPageNumbers().map((pageNumber, index) => (
+      <div className="flex justify-between items-center mt-4">
+        <div></div>
+        <div className="flex justify-center">
+          {renderPageNumbers().map((pageNumber, index) => (
+            <button
+              key={index}
+              onClick={() => handlePageChange(pageNumber)}
+              className={`px-4 py-2 mx-1 border rounded ${
+                currentPage === pageNumber ? "bg-blue-500 text-white" : "bg-white"
+              }`}
+              disabled={pageNumber === "..."}
+            >
+              {pageNumber}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center">
+          <input
+            type="number"
+            value={inputPageNumber}
+            onChange={(e) => setInputPageNumber(e.target.value)}
+            className="border border-gray-300 rounded-lg p-2 w-16"
+            placeholder="Page"
+          />
           <button
-            key={index}
-            onClick={() => handlePageChange(pageNumber)}
-            className={`px-4 py-2 mx-1 border rounded ${
-              currentPage === pageNumber ? "bg-blue-500 text-white" : "bg-white"
-            }`}
-            disabled={pageNumber === "..."}
+            onClick={handleInputPageChange}
+            className="ml-2 px-4 py-2 border rounded bg-blue-500 text-white"
           >
-            {pageNumber}
+            Go
           </button>
-        ))}
+        </div>
       </div>
     </div>
   );
