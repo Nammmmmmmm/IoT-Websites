@@ -1,37 +1,58 @@
 import React, { useRef, useEffect, useState } from "react";
 import Chart from "chart.js/auto";
-import axios from "axios";
+import mqtt from "mqtt"; // Thêm mqtt client
 
 const RealTimeLineChart = () => {
   const chartRef = useRef(null);
-  const chartInstanceRef = useRef(null); // Thêm ref cho instance của biểu đồ
-  const [data, setData] = useState([]);
+  const chartInstanceRef = useRef(null);
+  const [data, setData] = useState(() => {
+    // Lấy dữ liệu từ localStorage khi component được mount
+    const savedData = localStorage.getItem("chartData");
+    return savedData ? JSON.parse(savedData) : [];
+  });
 
   useEffect(() => {
-    // Gọi fetchData ngay khi component được mount
-    fetchData();
+    // Kết nối tới MQTT broker
+    const client = mqtt.connect("ws://localhost:9001", {
+      username: "phuongnam",
+      password: "b21dccn555",
+    });
 
-    // Sử dụng setInterval để gọi fetchData mỗi 5 giây
-    const interval = setInterval(fetchData, 5000);
+    client.on("connect", () => {
+      console.log("Connected to MQTT broker");
+      client.subscribe("datasensor", (err) => {
+        if (!err) {
+          console.log("Subscribed to topic datasensor");
+        }
+      });
+    });
 
-    // Dọn dẹp interval khi component bị unmount
-    return () => clearInterval(interval);
+    client.on("message", (topic, message) => {
+      if (topic === "datasensor") {
+        const payload = JSON.parse(message.toString());
+        setData((prevData) => {
+          // Cập nhật dữ liệu với phần tử mới
+          const updatedData = [...prevData, payload];
+
+          // Giữ lại chỉ 8 phần tử cuối cùng để hiển thị trên biểu đồ
+          const limitedData = updatedData.slice(-8);
+
+          // Lưu dữ liệu vào localStorage
+          localStorage.setItem("chartData", JSON.stringify(limitedData));
+
+          return limitedData;
+        });
+      }
+    });
+
+    return () => {
+      if (client) {
+        client.end();
+      }
+    };
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const response = await axios.get("http://localhost:7000/data_sensor");
-      const data = response.data;
-      setData(data); // Lưu trữ dữ liệu vào state
-      // console.log("Fetched data:", data); // Kiểm tra dữ liệu trả về từ API
-    } catch (err) {
-      console.log("Something went wrong", err);
-    }
-  };
-
   useEffect(() => {
-    // console.log("Data for chart:", data); // Kiểm tra dữ liệu trước khi tạo biểu đồ
-
     // Giới hạn số lượng mẫu hiển thị trên trục x (7-8 mẫu cuối cùng)
     const limitedData = data.slice(-8);
 
@@ -94,7 +115,7 @@ const RealTimeLineChart = () => {
         },
       });
     }
-  }, [data]); // Thêm data vào dependency array để cập nhật biểu đồ khi data thay đổi
+  }, [data]); // Cập nhật biểu đồ mỗi khi dữ liệu mới được nhận qua MQTT
 
   return (
     <div className="h-[32rem] bg-white p-4 rounded-sm border border-gray-200 flex flex-col flex-1">

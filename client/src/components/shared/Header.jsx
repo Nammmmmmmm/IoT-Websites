@@ -12,7 +12,7 @@ export default function Header() {
 
   return (
     <div className="bg-white h-16 px-4 flex justify-between items-center">
-      <div className="font-bold">Dashboard IoT</div>
+      <div className="font-extrabold text-lg">Dashboard IoT</div>
       <div className="flex items-center gap-2 mr-2">
         <Popover className="relative">
           {({ open }) => (

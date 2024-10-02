@@ -2,83 +2,116 @@ import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFan, faLightbulb, faTv } from "@fortawesome/free-solid-svg-icons";
 import { Switch } from "@headlessui/react";
-import mqtt from 'mqtt';  // Thêm mqtt để kết nối tới MQTT broker
+import mqtt from "mqtt"; // Thêm mqtt để kết nối tới MQTT broker
 
 function DeviceControlPanel() {
-  const [fanIsOn, setFanIsOn] = useState(false);
-  const [lightbulbIsOn, setLightbulbIsOn] = useState(false);
-  const [tvIsOn, setTvIsOn] = useState(false);
+  const [fanIsOn, setFanIsOn] = useState(() => {
+    const savedState = localStorage.getItem("fanIsOn");
+    return savedState ? JSON.parse(savedState) : false;
+  });
+  const [lightbulbIsOn, setLightbulbIsOn] = useState(() => {
+    const savedState = localStorage.getItem("lightbulbIsOn");
+    return savedState ? JSON.parse(savedState) : false;
+  });
+  const [tvIsOn, setTvIsOn] = useState(() => {
+    const savedState = localStorage.getItem("tvIsOn");
+    return savedState ? JSON.parse(savedState) : false;
+  });
   const [mqttClient, setMqttClient] = useState(null);
-  const [ws, setWs] = useState(null); // Thêm trạng thái cho WebSocket
+  const [dustLevel, setDustLevel] = useState(null); // Lưu trữ giá trị dust
 
   useEffect(() => {
-    // Kết nối tới WebSocket server
-    const wsClient = new WebSocket('ws://localhost:8080');
-    
-    wsClient.onopen = () => {
-      console.log('Connected to WebSocket server');
-    };
-
-    wsClient.onmessage = (event) => {
-      console.log('Received message from WebSocket:', event.data);
-      // Xử lý dữ liệu nếu cần, hiện tại chỉ in ra console
-    };
-
-    wsClient.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
-
-    wsClient.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    setWs(wsClient); // Lưu WebSocket client vào state
-
     // Kết nối tới MQTT broker qua WebSocket
-    const mqttClient = mqtt.connect('ws://localhost:9001', {
-      username: 'phuongnam',
-      password: 'b21dccn555'
+    const client = mqtt.connect("ws://localhost:9001", {
+      username: "phuongnam",
+      password: "b21dccn555",
     });
 
-    mqttClient.on('connect', () => {
-      console.log('Connected to MQTT broker');
+    client.on("connect", () => {
+      console.log("Connected to MQTT broker");
+      setMqttClient(client);
+      client.subscribe("dev_status"); // Subcribe topic để nhận trạng thái thiết bị từ backend
+      client.subscribe("datasensor"); // Subcribe topic để nhận dữ liệu cảm biến
     });
 
-    mqttClient.on('error', (err) => {
-      console.error('Connection error: ', err);
-      mqttClient.end();
+    client.on("error", (err) => {
+      console.error("Connection error: ", err);
+      client.end();
     });
 
-    setMqttClient(mqttClient);
+    client.on("message", (topic, message) => {
+      const payload = JSON.parse(message.toString());
+      const { device, status, dust } = payload;
 
-    // Ngắt kết nối khi component bị unmount
-    return () => {
-      if (mqttClient) {
-        mqttClient.end();
+      // Cập nhật trạng thái của thiết bị khi nhận được phản hồi từ MQTT
+      if (device === "Fan") {
+        setFanIsOn(status === "On");
+        localStorage.setItem("fanIsOn", JSON.stringify(status === "On"));
+      } else if (device === "Lightbulb") {
+        setLightbulbIsOn(status === "On");
+        localStorage.setItem("lightbulbIsOn", JSON.stringify(status === "On"));
+      } else if (device === "TV") {
+        setTvIsOn(status === "On");
+        localStorage.setItem("tvIsOn", JSON.stringify(status === "On"));
       }
-      if (wsClient) {
-        wsClient.close();
+
+      // Cập nhật giá trị dust nếu có trong payload
+      if (topic === "datasensor" && dust !== undefined) {
+        setDustLevel(dust);
+      }
+    });
+
+    return () => {
+      if (client) {
+        client.end();
       }
     };
   }, []);
 
-  // Gửi tín hiệu điều khiển thiết bị qua WebSocket và MQTT
-  const toggleDevice = (device, status) => {
-    if (mqttClient && ws) {
-      const payload = JSON.stringify({ device, status });
+  useEffect(() => {
+    // Kiểm tra giá trị độ bụi và tự động bật/tắt đèn TV
+    if (dustLevel !== null) {
+      if (dustLevel > 80 && !tvIsOn) {
+        toggleDevice("TV", true);
+      } else if (dustLevel <= 80 && tvIsOn) {
+        toggleDevice("TV", false);
+      }
+    }
+  }, [dustLevel]); // Theo dõi giá trị dustLevel thay vì tvIsOn
 
-      // Gửi dữ liệu qua WebSocket
-      ws.send(payload);
+  // Gửi tín hiệu điều khiển thiết bị qua MQTT
+  const toggleDevice = (device, isOn) => {
+    if (mqttClient && mqttClient.connected) {
+      const payload = JSON.stringify({ device, status: isOn ? "On" : "Off" });
 
       // Xuất bản dữ liệu qua MQTT
-      mqttClient.publish('controldevice', payload, (err) => {
+      mqttClient.publish("controldevice", payload, (err) => {
         if (err) {
-          console.error('Error publishing message: ', err);
+          console.error("Error publishing message: ", err);
         } else {
-          console.log('Message published via MQTT: ', payload);
+          console.log("Message published via MQTT: ", payload);
         }
       });
+
+      // Cập nhật trạng thái của thiết bị trong state và localStorage
+      if (device === "Fan") {
+        setFanIsOn(isOn);
+        localStorage.setItem("fanIsOn", JSON.stringify(isOn));
+      } else if (device === "Lightbulb") {
+        setLightbulbIsOn(isOn);
+        localStorage.setItem("lightbulbIsOn", JSON.stringify(isOn));
+      } else if (device === "TV") {
+        setTvIsOn(isOn);
+        localStorage.setItem("tvIsOn", JSON.stringify(isOn));
+      }
+    } else {
+      console.error("MQTT client is not connected");
     }
+  };
+
+  // Hàm để xử lý khi người dùng tương tác với nút switch
+  const handleToggle = (device, isOn) => {
+    toggleDevice(device, !isOn); // Gửi tín hiệu điều khiển qua MQTT, nhưng không cập nhật trực tiếp trạng thái
   };
 
   return (
@@ -92,15 +125,15 @@ function DeviceControlPanel() {
           <span className="p-4 font-black text-lg">OFF</span>
           <Switch
             checked={fanIsOn}
-            onChange={() => {
-              const newStatus = !fanIsOn;
-              setFanIsOn(newStatus);
-              toggleDevice("Fan", newStatus ? "On" : "Off");
-            }}
-            className={`${fanIsOn ? "bg-blue-600" : "bg-gray-200"} ml-auto relative inline-flex h-6 w-11 items-center rounded-full`}
+            onChange={() => handleToggle("Fan", fanIsOn)}
+            className={`${
+              fanIsOn ? "bg-blue-600" : "bg-gray-200"
+            } ml-auto relative inline-flex h-6 w-11 items-center rounded-full`}
           >
             <span
-              className={`${fanIsOn ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform rounded-full bg-white transition`}
+              className={`${
+                fanIsOn ? "translate-x-6" : "translate-x-1"
+              } inline-block h-4 w-4 transform rounded-full bg-white transition`}
             />
           </Switch>
           <span className="p-4 font-black text-lg">ON</span>
@@ -120,15 +153,15 @@ function DeviceControlPanel() {
           <span className="p-4 font-black text-lg">OFF</span>
           <Switch
             checked={lightbulbIsOn}
-            onChange={() => {
-              const newStatus = !lightbulbIsOn;
-              setLightbulbIsOn(newStatus);
-              toggleDevice("Lightbulb", newStatus ? "On" : "Off");
-            }}
-            className={`${lightbulbIsOn ? "bg-blue-600" : "bg-gray-200"} ml-auto relative inline-flex h-6 w-11 items-center rounded-full`}
+            onChange={() => handleToggle("Lightbulb", lightbulbIsOn)}
+            className={`${
+              lightbulbIsOn ? "bg-blue-600" : "bg-gray-200"
+            } ml-auto relative inline-flex h-6 w-11 items-center rounded-full`}
           >
             <span
-              className={`${lightbulbIsOn ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform rounded-full bg-white transition`}
+              className={`${
+                lightbulbIsOn ? "translate-x-6" : "translate-x-1"
+              } inline-block h-4 w-4 transform rounded-full bg-white transition`}
             />
           </Switch>
           <span className="p-4 font-black text-lg">ON</span>
@@ -148,15 +181,15 @@ function DeviceControlPanel() {
           <span className="p-4 font-black text-lg">OFF</span>
           <Switch
             checked={tvIsOn}
-            onChange={() => {
-              const newStatus = !tvIsOn;
-              setTvIsOn(newStatus);
-              toggleDevice("TV", newStatus ? "On" : "Off");
-            }}
-            className={`${tvIsOn ? "bg-blue-600" : "bg-gray-200"} ml-auto relative inline-flex h-6 w-11 items-center rounded-full`}
+            onChange={() => handleToggle("TV", tvIsOn)}
+            className={`${
+              tvIsOn ? "bg-blue-600" : "bg-gray-200"
+            } ml-auto relative inline-flex h-6 w-11 items-center rounded-full`}
           >
             <span
-              className={`${tvIsOn ? "translate-x-6" : "translate-x-1"} inline-block h-4 w-4 transform rounded-full bg-white transition`}
+              className={`${
+                tvIsOn ? "translate-x-6" : "translate-x-1"
+              } inline-block h-4 w-4 transform rounded-full bg-white transition`}
             />
           </Switch>
           <span className="p-4 font-black text-lg">ON</span>

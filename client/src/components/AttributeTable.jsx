@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { HiOutlineSearch } from "react-icons/hi";
 import { FaSortUp, FaSortDown } from "react-icons/fa";
 import axios from "axios";
+import { format } from "date-fns"; // Import thư viện date-fns
 
 export default function AttributeTable() {
   const [data, setData] = useState([]);
@@ -10,7 +11,7 @@ export default function AttributeTable() {
   const [selectedFilter, setSelectedFilter] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi state itemsPerPage
   const [inputPageNumber, setInputPageNumber] = useState("");
 
   useEffect(() => {
@@ -49,11 +50,24 @@ export default function AttributeTable() {
   });
 
   const filteredData = sortedData.filter((item) => {
-    return (
-      item.temperature.toString().includes(searchTerm) ||
-      item.humidity.toString().includes(searchTerm) ||
-      item.light.toString().includes(searchTerm)
-    );
+    const formattedTime = format(new Date(item.measurementTime), 'dd/MM/yyyy HH:mm:ss');
+    switch (selectedFilter) {
+      case "temperature":
+        return item.temperature.toString().includes(searchTerm);
+      case "humidity":
+        return item.humidity.toString().includes(searchTerm);
+      case "light":
+        return item.light.toString().includes(searchTerm);
+      case "time":
+        return formattedTime.includes(searchTerm);
+      default:
+        return (
+          item.temperature.toString().includes(searchTerm) ||
+          item.humidity.toString().includes(searchTerm) ||
+          item.light.toString().includes(searchTerm) ||
+          formattedTime.includes(searchTerm)
+        );
+    }
   });
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -106,6 +120,11 @@ export default function AttributeTable() {
     if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
     }
+  };
+
+  const handleItemsPerPageChange = (event) => {
+    setItemsPerPage(parseInt(event.target.value, 10));
+    setCurrentPage(1); // Reset về trang đầu tiên khi thay đổi số lượng mục hiển thị
   };
 
   return (
@@ -172,6 +191,15 @@ export default function AttributeTable() {
                 className="w-full text-left px-4 py-2 hover:bg-gray-200"
               >
                 Light
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedFilter("time");
+                  setIsDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-200"
+              >
+                Time
               </button>
             </div>
           )}
@@ -251,14 +279,26 @@ export default function AttributeTable() {
                 <td>{item.temperature} °C</td>
                 <td>{item.humidity} %</td>
                 <td>{item.light} Lux</td>
-                <td>{item.measurementTime}</td>
+                <td>{format(new Date(item.measurementTime), 'dd/MM/yyyy HH:mm:ss')}</td> {/* Định dạng ngày tháng */}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="flex justify-between items-center mt-4">
-        <div></div>
+        <div className="flex items-center">
+          <span className="mr-2">Items per page:</span>
+          <select
+            value={itemsPerPage}
+            onChange={handleItemsPerPageChange}
+            className="border border-gray-300 rounded-lg p-2"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
         <div className="flex justify-center">
           {renderPageNumbers().map((pageNumber, index) => (
             <button
@@ -267,8 +307,7 @@ export default function AttributeTable() {
               className={`px-4 py-2 mx-1 border rounded ${
                 currentPage === pageNumber ? "bg-blue-500 text-white" : "bg-white"
               }`}
-              disabled={pageNumber === "..."}
-            >
+              disabled={pageNumber === "..."}>
               {pageNumber}
             </button>
           ))}
