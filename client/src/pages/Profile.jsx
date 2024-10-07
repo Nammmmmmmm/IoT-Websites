@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Profile() {
   return (
-    <div className="bg-gray-200 h-screen flex items-center justify-center relative">
+    <div className="bg-white-300 h-screen flex items-center justify-center relative">
       {/* Meme bên trái */}
       {/* <div className="absolute left-0 top-1/2 transform -translate-y-1/2">
         <img

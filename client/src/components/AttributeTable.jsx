@@ -13,6 +13,7 @@ export default function AttributeTable() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi state itemsPerPage
   const [inputPageNumber, setInputPageNumber] = useState("");
+  const [pendingDevice, setPendingDevice] = useState(null); // Lưu trữ thiết bị đang chờ xác nhận
 
   useEffect(() => {
     fetchData();

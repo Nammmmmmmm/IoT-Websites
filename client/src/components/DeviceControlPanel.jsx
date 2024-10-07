@@ -19,6 +19,7 @@ function DeviceControlPanel() {
   });
   const [mqttClient, setMqttClient] = useState(null);
   const [dustLevel, setDustLevel] = useState(null); // Lưu trữ giá trị dust
+  const [pendingDevice, setPendingDevice] = useState(null); // Lưu trữ thiết bị đang chờ xác nhận
 
   useEffect(() => {
     // Kết nối tới MQTT broker qua WebSocket
@@ -32,6 +33,7 @@ function DeviceControlPanel() {
       setMqttClient(client);
       client.subscribe("dev_status"); // Subcribe topic để nhận trạng thái thiết bị từ backend
       client.subscribe("datasensor"); // Subcribe topic để nhận dữ liệu cảm biến
+      client.subscribe("controldevice"); // Subcribe topic để nhận xác nhận điều khiển thiết bị
     });
 
     client.on("error", (err) => {
@@ -44,15 +46,18 @@ function DeviceControlPanel() {
       const { device, status, dust } = payload;
 
       // Cập nhật trạng thái của thiết bị khi nhận được phản hồi từ MQTT
-      if (device === "Fan") {
-        setFanIsOn(status === "On");
-        localStorage.setItem("fanIsOn", JSON.stringify(status === "On"));
-      } else if (device === "Lightbulb") {
-        setLightbulbIsOn(status === "On");
-        localStorage.setItem("lightbulbIsOn", JSON.stringify(status === "On"));
-      } else if (device === "TV") {
-        setTvIsOn(status === "On");
-        localStorage.setItem("tvIsOn", JSON.stringify(status === "On"));
+      if (topic === "dev_status" && device && status) {
+        if (device === "Fan") {
+          setFanIsOn(status === "On");
+          localStorage.setItem("fanIsOn", JSON.stringify(status === "On"));
+        } else if (device === "Lightbulb") {
+          setLightbulbIsOn(status === "On");
+          localStorage.setItem("lightbulbIsOn", JSON.stringify(status === "On"));
+        } else if (device === "TV") {
+          setTvIsOn(status === "On");
+          localStorage.setItem("tvIsOn", JSON.stringify(status === "On"));
+        }
+        setPendingDevice(null); // Xóa trạng thái chờ xác nhận
       }
 
       // Cập nhật giá trị dust nếu có trong payload
@@ -90,20 +95,9 @@ function DeviceControlPanel() {
           console.error("Error publishing message: ", err);
         } else {
           console.log("Message published via MQTT: ", payload);
+          setPendingDevice(device); // Đặt trạng thái chờ xác nhận
         }
       });
-
-      // Cập nhật trạng thái của thiết bị trong state và localStorage
-      if (device === "Fan") {
-        setFanIsOn(isOn);
-        localStorage.setItem("fanIsOn", JSON.stringify(isOn));
-      } else if (device === "Lightbulb") {
-        setLightbulbIsOn(isOn);
-        localStorage.setItem("lightbulbIsOn", JSON.stringify(isOn));
-      } else if (device === "TV") {
-        setTvIsOn(isOn);
-        localStorage.setItem("tvIsOn", JSON.stringify(isOn));
-      }
     } else {
       console.error("MQTT client is not connected");
     }
