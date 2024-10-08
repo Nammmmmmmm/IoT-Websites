@@ -24,15 +24,15 @@ export default function Profile() {
         </div>
         <div className="py-8 px-8">
           <div className="flex flex-col items-center pb-8">
-            <h3 className="text-4xl font-semibold text-blue-500">
+            <h3 className="text-4xl font-semibold text-black-500">
               Phạm Phương Nam
             </h3>
           </div>
           <div className="text-lg font-semibold">
-            <h3 className="text-md text-blue-500">Mã Sinh Viên: B21DCCN555</h3>
-            <h3 className="text-md text-blue-500">Lớp: D21HTTT02</h3>
-            <h3 className="text-md text-blue-500">Nhóm: 05</h3>
-            <h3 className="text-md text-blue-500">
+            <h3 className="text-md text-black-500">Mã Sinh Viên: B21DCCN555</h3>
+            <h3 className="text-md text-black-500">Lớp: D21HTTT02</h3>
+            <h3 className="text-md text-black-500">Nhóm: 05</h3>
+            <h3 className="text-md text-black-500">
               Link bài tập lớn:{" "}
               <a
                 href="https://github.com/Nammmmmmmm/IoT-Websites.git"
@@ -42,24 +42,24 @@ export default function Profile() {
                 Github
               </a>
             </h3>
-            <h3 className="text-md text-blue-500">
+            <h3 className="text-md text-black-500">
               Link quyển PDF:{" "}
               <a
                 href="https://github.com/Nammmmmmmm/IoT-Websites.git"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Github
+                PDF
               </a>
             </h3>
-            <h3 className="text-md text-blue-500">
+            <h3 className="text-md text-black-500">
               Link tài liệu API docs:{" "}
               <a
                 href="https://github.com/Nammmmmmmm/IoT-Websites.git"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Github
+                API DOCS
               </a>
             </h3>
           </div>
