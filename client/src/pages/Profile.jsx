@@ -45,7 +45,7 @@ export default function Profile() {
             <h3 className="text-md text-black-500">
               Link quyển PDF:{" "}
               <a
-                href="https://github.com/Nammmmmmmm/IoT-Websites.git"
+                href="https://github.com/Nammmmmmmm/IoT-Websites/blob/main/BaoCaoIoT.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -55,7 +55,7 @@ export default function Profile() {
             <h3 className="text-md text-black-500">
               Link tài liệu API docs:{" "}
               <a
-                href="https://github.com/Nammmmmmmm/IoT-Websites.git"
+                href="https://github.com/Nammmmmmmm/IoT-Websites/blob/main/IOT%20test.postman_collection.json"
                 target="_blank"
                 rel="noopener noreferrer"
               >

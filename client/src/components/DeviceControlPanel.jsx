@@ -3,6 +3,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFan, faLightbulb, faTv } from "@fortawesome/free-solid-svg-icons";
 import { Switch } from "@headlessui/react";
 import mqtt from "mqtt"; // Thêm mqtt để kết nối tới MQTT broker
+import axios from "axios"; // Thêm axios để gọi API
+import { isToday } from "date-fns"; // Thêm thư viện date-fns để kiểm tra ngày
 
 function DeviceControlPanel() {
   const [fanIsOn, setFanIsOn] = useState(() => {
@@ -17,9 +19,12 @@ function DeviceControlPanel() {
     const savedState = localStorage.getItem("tvIsOn");
     return savedState ? JSON.parse(savedState) : false;
   });
+  const [canhbaoIsOn, setCanhbaoIsOn] = useState(false); // Thêm state để lưu trữ trạng thái của đèn canhbao
   const [mqttClient, setMqttClient] = useState(null);
   const [dustLevel, setDustLevel] = useState(null); // Lưu trữ giá trị dust
+  const [radiationLevel, setRadiationLevel] = useState(null); // Lưu trữ giá trị radiation
   const [pendingDevice, setPendingDevice] = useState(null); // Lưu trữ thiết bị đang chờ xác nhận
+  const [alertCount, setAlertCount] = useState(0); // Lưu trữ số lần cảnh báo
 
   useEffect(() => {
     // Kết nối tới MQTT broker qua WebSocket
@@ -43,7 +48,7 @@ function DeviceControlPanel() {
 
     client.on("message", (topic, message) => {
       const payload = JSON.parse(message.toString());
-      const { device, status, dust } = payload;
+      const { device, status, dust, radiation, canhbao, timestamp } = payload;
 
       // Cập nhật trạng thái của thiết bị khi nhận được phản hồi từ MQTT
       if (topic === "dev_status" && device && status) {
@@ -56,13 +61,20 @@ function DeviceControlPanel() {
         } else if (device === "TV") {
           setTvIsOn(status === "On");
           localStorage.setItem("tvIsOn", JSON.stringify(status === "On"));
+        } else if (device === "canhbao") {
+          setCanhbaoIsOn(status === "On");
         }
         setPendingDevice(null); // Xóa trạng thái chờ xác nhận
       }
 
-      // Cập nhật giá trị dust nếu có trong payload
-      if (topic === "datasensor" && dust !== undefined) {
-        setDustLevel(dust);
+      // Cập nhật giá trị dust và radiation nếu có trong payload
+      if (topic === "datasensor") {
+        if (dust !== undefined) {
+          setDustLevel(dust);
+        }
+        if (radiation !== undefined) {
+          setRadiationLevel(radiation);
+        }
       }
     });
 
@@ -74,15 +86,18 @@ function DeviceControlPanel() {
   }, []);
 
   useEffect(() => {
-    // Kiểm tra giá trị độ bụi và tự động bật/tắt đèn TV
-    if (dustLevel !== null) {
-      if (dustLevel > 80 && !tvIsOn) {
-        toggleDevice("TV", true);
-      } else if (dustLevel <= 80 && tvIsOn) {
-        toggleDevice("TV", false);
+    // Gọi API để lấy số lần trạng thái canhbao được bật trong ngày
+    const fetchAlertCount = async () => {
+      try {
+        const response = await axios.get("http://localhost:7000/alert_count");
+        setAlertCount(response.data.count);
+      } catch (err) {
+        console.error("Error fetching alert count: ", err);
       }
-    }
-  }, [dustLevel]); // Theo dõi giá trị dustLevel thay vì tvIsOn
+    };
+
+    fetchAlertCount();
+  }, [canhbaoIsOn]); // Gọi API mỗi khi trạng thái canhbao thay đổi
 
   // Gửi tín hiệu điều khiển thiết bị qua MQTT
   const toggleDevice = (device, isOn) => {
@@ -110,6 +125,7 @@ function DeviceControlPanel() {
 
   return (
     <div className="w-[20rem] h-[22rem] bg-white p-4 rounded-lg border border-gray-200 flex flex-col">
+      <style>{blinkStyle}</style>
       {/* Quạt */}
       <div className="flex items-center mb-4 flex-1 justify-between">
         <div className="flex items-center justify-center flex-1">
@@ -189,8 +205,31 @@ function DeviceControlPanel() {
           <span className="p-4 font-black text-lg">ON</span>
         </div>
       </div>
+
+      {/* Số lần cảnh báo */}
+      <div className="mt-4 text-center">
+        <span className="font-black text-lg">Số lần cảnh báo: {alertCount}</span>
+      </div>
+
+      {/* Ô nhấp nháy khi cảnh báo */}
+      {canhbaoIsOn && (
+        <div className="mt-4 text-center blink bg-red-500 text-white p-2 rounded">
+          Cảnh báo đang bật!
+        </div>
+      )}
     </div>
   );
 }
+
+const blinkStyle = `
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  .blink {
+    animation: blink 1s infinite;
+  }
+`;
 
 export default DeviceControlPanel;

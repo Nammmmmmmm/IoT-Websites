@@ -13,15 +13,19 @@ export default function AttributeTable() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi state itemsPerPage
   const [inputPageNumber, setInputPageNumber] = useState("");
-  const [pendingDevice, setPendingDevice] = useState(null); // Lưu trữ thiết bị đang chờ xác nhận
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [searchTerm, selectedFilter]);
 
   const fetchData = async () => {
     try {
-      const response = await axios.get("http://localhost:7000/data_sensor");
+      const response = await axios.get("http://localhost:7000/data_sensor", {
+        params: {
+          searchTerm,
+          filter: selectedFilter,
+        },
+      });
       setData(response.data); // Lấy dữ liệu từ API và lưu vào state
     } catch (err) {
       console.log("Something went wrong", err);
@@ -50,32 +54,11 @@ export default function AttributeTable() {
     return 0;
   });
 
-  const filteredData = sortedData.filter((item) => {
-    const formattedTime = format(new Date(item.measurementTime), 'dd/MM/yyyy HH:mm:ss');
-    switch (selectedFilter) {
-      case "temperature":
-        return item.temperature.toString().includes(searchTerm);
-      case "humidity":
-        return item.humidity.toString().includes(searchTerm);
-      case "light":
-        return item.light.toString().includes(searchTerm);
-      case "time":
-        return formattedTime.includes(searchTerm);
-      default:
-        return (
-          item.temperature.toString().includes(searchTerm) ||
-          item.humidity.toString().includes(searchTerm) ||
-          item.light.toString().includes(searchTerm) ||
-          formattedTime.includes(searchTerm)
-        );
-    }
-  });
-
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = sortedData.slice(indexOfFirstItem, indexOfLastItem);
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = Math.ceil(data.length / itemsPerPage);
 
   const renderPageNumbers = () => {
     const pageNumbers = [];
@@ -112,10 +95,21 @@ export default function AttributeTable() {
     return pageNumbers;
   };
 
-  const handleFilterSearch = () => {
-    // Code to handle filter search can be added here if necessary
+  const handleFilterSearch = async () => {
+    try {
+      const response = await axios.get("http://localhost:7000/search_attribute", {
+        params: {
+          searchTerm,
+          filter: selectedFilter,
+        },
+      });
+      setData(response.data); // Lấy dữ liệu từ API tìm kiếm và lưu vào state
+      setCurrentPage(1); // Đặt lại trang hiện tại về trang đầu tiên
+    } catch (err) {
+      console.log("Something went wrong", err);
+    }
   };
-  
+
   const handleInputPageChange = () => {
     const pageNumber = parseInt(inputPageNumber, 10);
     if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
@@ -195,6 +189,24 @@ export default function AttributeTable() {
               </button>
               <button
                 onClick={() => {
+                  setSelectedFilter("radiation");
+                  setIsDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-200"
+              >
+                Radiation
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedFilter("dust");
+                  setIsDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-200"
+              >
+                Dust
+              </button>
+              <button
+                onClick={() => {
                   setSelectedFilter("time");
                   setIsDropdownOpen(false);
                 }}
@@ -261,6 +273,28 @@ export default function AttributeTable() {
                 </button>
               </th>
               <th>
+                Bức xạ
+                <button onClick={() => handleSort("radiation")}>
+                  {sortConfig.key === "radiation" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
+                Độ bụi
+                <button onClick={() => handleSort("dust")}>
+                  {sortConfig.key === "dust" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
                 Thời gian đo
                 <button onClick={() => handleSort("measurementTime")}>
                   {sortConfig.key === "measurementTime" &&
@@ -280,6 +314,8 @@ export default function AttributeTable() {
                 <td>{item.temperature} °C</td>
                 <td>{item.humidity} %</td>
                 <td>{item.light} Lux</td>
+                <td>{item.radiation} µSv/h</td> {/* Thêm cột bức xạ */}
+                <td>{item.dust} µg/m³</td> {/* Thêm cột độ bụi */}
                 <td>{format(new Date(item.measurementTime), 'dd/MM/yyyy HH:mm:ss')}</td> {/* Định dạng ngày tháng */}
               </tr>
             ))}
@@ -308,7 +344,7 @@ export default function AttributeTable() {
               className={`px-4 py-2 mx-1 border rounded ${
                 currentPage === pageNumber ? "bg-blue-500 text-white" : "bg-white"
               }`}
-              disabled={pageNumber === "..."}>
+              disabled={pageNumber === "..."} >
               {pageNumber}
             </button>
           ))}

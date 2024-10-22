@@ -2,8 +2,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/shared/Layout";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
-import Departments from "./pages/Departments";
-import Attributes from "./pages/Attributes";
+import  DataSensor from "./pages/DataSensor";
+import ActionHistory from "./pages/ActionHistory";
 
 function App() {
   return (
@@ -12,8 +12,8 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="departments" element={<Departments />} />
-          <Route path="attributes" element={<Attributes />} />
+          <Route path="datasensor" element={<DataSensor />} />
+          <Route path="actionhistory" element={<ActionHistory />} />
         </Route>
       </Routes>
     </BrowserRouter>

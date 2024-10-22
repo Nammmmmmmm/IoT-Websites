@@ -48,11 +48,11 @@ function initializeBroker() {
         console.log("Subscribed to topic datasensor");
       }
     });
-    mqttClient.subscribe("controldevice", (err) => {
-      if (!err) {
-        console.log("Subscribed to topic controldevice");
-      }
-    });
+    // mqttClient.subscribe("controldevice", (err) => {
+    //   if (!err) {
+    //     console.log("Subscribed to topic controldevice");
+    //   }
+    // });
     mqttClient.subscribe("dev_status", (err) => {
       if (!err) {
         console.log("Subscribed to topic dev_status");
@@ -72,12 +72,12 @@ function initializeBroker() {
     }
 
     if (topic === "datasensor") {
-      const { temperature, humidity, light, dust } = data;
+      const { temperature, humidity, light, dust, radiation } = data;
       const query =
-        "INSERT INTO attributetable (temperature, humidity, light, dust, measurementTime) VALUES (?, ?, ?, ?, NOW())";
+        "INSERT INTO attributetable (temperature, humidity, light, dust, radiation, measurementTime) VALUES (?, ?, ?, ?, ?, NOW())";
 
       // Save data to the database
-      sqlconnect.query(query, [temperature, humidity, light, dust], (err, result) => {
+      sqlconnect.query(query, [temperature, humidity, light, dust, radiation], (err, result) => {
         if (err) {
           console.error("Error inserting data into attributetable:", err);
           return;
@@ -86,7 +86,7 @@ function initializeBroker() {
 
         // Broadcast the sensor data to Socket.IO clients
         broadcastData("datasensor", {
-          temperature, humidity, light, dust
+          temperature, humidity, light, dust, radiation
         });
       });
     } else if (topic === "dev_status") {
@@ -105,23 +105,7 @@ function initializeBroker() {
         // Broadcast the control device data to Socket.IO clients
         broadcastData("dev_status", { device, status });
       });
-    } else if (topic === "controldevice") {
-      const { device, status } = data;
-      const query =
-        "INSERT INTO devicetable (device, status, measurementTime) VALUES (?, ?, NOW())";
-
-      // Save data to the database
-      sqlconnect.query(query, [device, status], (err, result) => {
-        if (err) {
-          console.error("Error inserting data into devicetable:", err);
-          return;
-        }
-        console.log("Inserted data into devicetable");
-
-        // Broadcast the control device data to Socket.IO clients
-        broadcastData("controldevice", { device, status });
-      });
-    }
+    } 
   });
 
   // Khi client kết nối đến qua Socket.IO

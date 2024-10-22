@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { HiOutlineSearch } from "react-icons/hi";
 import axios from "axios";
-import { format } from "date-fns"; // Import thư viện date-fns
+import { format, isToday } from "date-fns"; // Import thư viện date-fns
 
 export default function DeviceTable() {
   const [data, setData] = useState([]);
@@ -12,9 +12,17 @@ export default function DeviceTable() {
   const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi state itemsPerPage
   const [inputPageNumber, setInputPageNumber] = useState("");
 
+  const [fanOnCount, setFanOnCount] = useState(0);
+  const [fanOffCount, setFanOffCount] = useState(0);
+  const [tvOnCountToday, setTvOnCountToday] = useState(0); // Thêm state để lưu trữ số lần TV được bật trong ngày
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    countActions(data);
+  }, [data]); // Tính toán lại số lần bật/tắt khi dữ liệu thay đổi
 
   const fetchData = async () => {
     try {
@@ -23,6 +31,45 @@ export default function DeviceTable() {
     } catch (err) {
       console.log("Something went wrong", err);
     }
+  };
+
+  const handleFilterSearch = async () => {
+    try {
+      const response = await axios.get("http://localhost:7000/search", {
+        params: {
+          searchTerm,
+          filter: selectedFilter,
+        },
+      });
+      setData(response.data); // Lấy dữ liệu từ API tìm kiếm và lưu vào state
+      setCurrentPage(1); // Đặt lại trang hiện tại về trang đầu tiên
+    } catch (err) {
+      console.log("Something went wrong", err);
+    }
+  };
+
+  const countActions = (data) => {
+    let onCount = 0;
+    let offCount = 0;
+    let tvOnCount = 0;
+
+    data.forEach((item) => {
+      if (item.device === "Fan") { // Đảm bảo giá trị "Fan" đúng với dữ liệu trả về từ API
+        if (item.status === "On") { // Đảm bảo giá trị "On" đúng với dữ liệu trả về từ API
+          onCount++;
+        } else if (item.status === "Off") { // Đảm bảo giá trị "Off" đúng với dữ liệu trả về từ API
+          offCount++;
+        }
+      }
+
+      if (item.device === "TV" && item.status === "On" && isToday(new Date(item.measurementTime))) {
+        tvOnCount++; // Đếm số lần TV được bật trong ngày
+      }
+    });
+
+    setFanOnCount(onCount);
+    setFanOffCount(offCount);
+    setTvOnCountToday(tvOnCount); // Cập nhật state số lần TV được bật trong ngày
   };
 
   const handlePageChange = (pageNumber) => {
@@ -168,13 +215,16 @@ export default function DeviceTable() {
           )}
         </div>
         <button
-          onClick={() => setCurrentPage(1)}
+          onClick={handleFilterSearch}
           className="text-sm focus:outline-none active:outline-none border border-gray-300 w-[8rem] h-10 pl-4 pr-4 rounded-lg bg-blue-500 text-white"
         >
           Search
         </button>
       </div>
-      <div className="overflow-y-auto max-h-[500px] mt-4">
+     
+
+      {/* Bảng hiển thị có thể cuộn */}
+      <div className="overflow-y-auto max-h-[400px] mt-4">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -190,12 +240,13 @@ export default function DeviceTable() {
                 <td>{item.id}</td>
                 <td>{item.device}</td>
                 <td>{item.status}</td>
-                <td>{format(new Date(item.measurementTime), 'dd/MM/yyyy HH:mm:ss')}</td> {/* Định dạng ngày tháng */}
+                <td>{format(new Date(item.measurementTime), 'dd/MM/yyyy HH:mm:ss')}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
       <div className="flex justify-between items-center mt-4">
         <div className="flex items-center">
           <span className="mr-2">Items per page:</span>

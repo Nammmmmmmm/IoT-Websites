@@ -2,11 +2,7 @@ import {
 	HiOutlineViewGrid,
 	HiOutlineCube,
 	HiOutlineShoppingCart,
-	HiOutlineUsers,
-	HiOutlineDocumentText,
-	HiOutlineAnnotation,
-	HiOutlineQuestionMarkCircle,
-	HiOutlineCog
+	HiOutlineUsers
 } from 'react-icons/hi'
 
 export const DASHBOARD_SIDEBAR_LINKS = [
@@ -17,15 +13,15 @@ export const DASHBOARD_SIDEBAR_LINKS = [
 		icon: <HiOutlineViewGrid />
 	},
 	{
-		key: 'Attributes',
-		label: 'Attributes',
-		path: '/attributes',
+		key: 'DataSenSor',
+		label: 'DataSenSor',
+		path: '/datasensor',
 		icon: <HiOutlineCube />
 	},
 	{
-		key: 'Departments',
-		label: 'Departments',
-		path: '/departments',
+		key: 'ActionHistory',
+		label: 'ActionHistory',
+		path: '/actionhistory',
 		icon: <HiOutlineShoppingCart />
 	},
 	{
