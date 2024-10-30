@@ -305,6 +305,14 @@
 					"body": "Data inserted successfully"
 				}
 			]
+		},
+		{
+			"name": "count_alert",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
 		}
 	]
 }

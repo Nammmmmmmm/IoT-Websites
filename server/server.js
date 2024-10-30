@@ -16,7 +16,8 @@ app.use(cors());
 app.use("/", RouterPath);
 app.use("/data_sensor", RouterPath);
 app.use("/data_device", RouterPath);
-
+app.use("/search_device", RouterPath);
+app.use("/search_attribute", RouterPath);
 
 
 app.listen(port, () => {

@@ -51,7 +51,6 @@ const DustChart = () => {
     if (chartInstanceRef.current) {
       chartInstanceRef.current.data.labels = limitedData.map((_, index) => index + 1);
       chartInstanceRef.current.data.datasets[0].data = limitedData.map(item => item.dust);
-      chartInstanceRef.current.data.datasets[1].data = limitedData.map(item => item.radiation); // Thêm dữ liệu bức xạ
       chartInstanceRef.current.update();
     } else {
       const ctx = chartRef.current.getContext("2d");
@@ -67,13 +66,7 @@ const DustChart = () => {
               data: limitedData.map(item => item.dust),
               yAxisID: 'y1',
             },
-            {
-              label: "Bức xạ",
-              backgroundColor: "rgba(255, 0, 0, 0.2)",
-              borderColor: "rgba(255, 0, 0, 1)",
-              data: limitedData.map(item => item.radiation), // Thêm dữ liệu bức xạ
-              yAxisID: 'y2',
-            },
+            
           ],
         },
         options: {
@@ -83,13 +76,7 @@ const DustChart = () => {
               position: 'left',
               beginAtZero: true,
               max: 100,
-            },
-            y2: {
-              type: 'linear',
-              position: 'right',
-              beginAtZero: true,
-              max: 100,
-            },
+            }
           },
         },
       });

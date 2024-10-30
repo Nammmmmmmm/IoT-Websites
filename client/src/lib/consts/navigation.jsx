@@ -13,6 +13,12 @@ export const DASHBOARD_SIDEBAR_LINKS = [
 		icon: <HiOutlineViewGrid />
 	},
 	{
+		key: 'newboard',
+		label: 'Newboard',
+		path: '/newboard',
+		icon: <HiOutlineViewGrid />
+	},
+	{
 		key: 'DataSenSor',
 		label: 'DataSenSor',
 		path: '/datasensor',

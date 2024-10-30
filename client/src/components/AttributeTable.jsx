@@ -20,7 +20,7 @@ export default function AttributeTable() {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get("http://localhost:7000/data_sensor", {
+      const response = await axios.get("http://localhost:7000/search_attribute", {
         params: {
           searchTerm,
           filter: selectedFilter,
@@ -272,17 +272,7 @@ export default function AttributeTable() {
                   )}
                 </button>
               </th>
-              <th>
-                Bức xạ
-                <button onClick={() => handleSort("radiation")}>
-                  {sortConfig.key === "radiation" &&
-                  sortConfig.direction === "ascending" ? (
-                    <FaSortUp />
-                  ) : (
-                    <FaSortDown />
-                  )}
-                </button>
-              </th>
+             
               <th>
                 Độ bụi
                 <button onClick={() => handleSort("dust")}>
@@ -314,7 +304,6 @@ export default function AttributeTable() {
                 <td>{item.temperature} °C</td>
                 <td>{item.humidity} %</td>
                 <td>{item.light} Lux</td>
-                <td>{item.radiation} µSv/h</td> {/* Thêm cột bức xạ */}
                 <td>{item.dust} µg/m³</td> {/* Thêm cột độ bụi */}
                 <td>{format(new Date(item.measurementTime), 'dd/MM/yyyy HH:mm:ss')}</td> {/* Định dạng ngày tháng */}
               </tr>

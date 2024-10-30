@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { HiOutlineSearch } from "react-icons/hi";
+import { FaSortUp, FaSortDown } from "react-icons/fa"; // Import icon sắp xếp
 import axios from "axios";
 import { format, isToday } from "date-fns"; // Import thư viện date-fns
 
@@ -11,10 +12,7 @@ export default function DeviceTable() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(10); // Thay đổi state itemsPerPage
   const [inputPageNumber, setInputPageNumber] = useState("");
-
-  const [fanOnCount, setFanOnCount] = useState(0);
-  const [fanOffCount, setFanOffCount] = useState(0);
-  const [tvOnCountToday, setTvOnCountToday] = useState(0); // Thêm state để lưu trữ số lần TV được bật trong ngày
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null }); // Thêm state sortConfig
 
   useEffect(() => {
     fetchData();
@@ -26,7 +24,7 @@ export default function DeviceTable() {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get("http://localhost:7000/data_device");
+      const response = await axios.get("http://localhost:7000/search_device");
       setData(response.data); // Lấy dữ liệu từ API và lưu vào state
     } catch (err) {
       console.log("Something went wrong", err);
@@ -35,7 +33,7 @@ export default function DeviceTable() {
 
   const handleFilterSearch = async () => {
     try {
-      const response = await axios.get("http://localhost:7000/search", {
+      const response = await axios.get("http://localhost:7000/search_device", {
         params: {
           searchTerm,
           filter: selectedFilter,
@@ -66,17 +64,31 @@ export default function DeviceTable() {
         tvOnCount++; // Đếm số lần TV được bật trong ngày
       }
     });
-
-    setFanOnCount(onCount);
-    setFanOffCount(offCount);
-    setTvOnCountToday(tvOnCount); // Cập nhật state số lần TV được bật trong ngày
   };
+
+  const handleSort = (key) => {
+    let direction = "ascending";
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedData = [...data].sort((a, b) => {
+    if (a[sortConfig.key] < b[sortConfig.key]) {
+      return sortConfig.direction === "ascending" ? -1 : 1;
+    }
+    if (a[sortConfig.key] > b[sortConfig.key]) {
+      return sortConfig.direction === "ascending" ? 1 : -1;
+    }
+    return 0;
+  });
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
 
-  const filteredData = [...data].filter((item) => {
+  const filteredData = sortedData.filter((item) => {
     const formattedTime = format(new Date(item.measurementTime), 'dd/MM/yyyy HH:mm:ss');
     switch (selectedFilter) {
       case "device":
@@ -228,10 +240,50 @@ export default function DeviceTable() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th>ID</th>
-              <th>Thiết bị</th>
-              <th>Trạng thái</th>
-              <th>Thời gian đo</th>
+              <th>
+                ID
+                <button onClick={() => handleSort("id")}>
+                  {sortConfig.key === "id" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
+                Thiết bị
+                <button onClick={() => handleSort("device")}>
+                  {sortConfig.key === "device" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
+                Trạng thái
+                <button onClick={() => handleSort("status")}>
+                  {sortConfig.key === "status" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
+              <th>
+                Thời gian đo
+                <button onClick={() => handleSort("measurementTime")}>
+                  {sortConfig.key === "measurementTime" &&
+                  sortConfig.direction === "ascending" ? (
+                    <FaSortUp />
+                  ) : (
+                    <FaSortDown />
+                  )}
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -269,7 +321,7 @@ export default function DeviceTable() {
               className={`px-4 py-2 mx-1 border rounded ${
                 currentPage === pageNumber ? "bg-blue-500 text-white" : "bg-white"
               }`}
-              disabled={pageNumber === "..."}>
+              disabled={pageNumber === "..."} >
               {pageNumber}
             </button>
           ))}
